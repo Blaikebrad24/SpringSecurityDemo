@@ -1,2 +1,5 @@
 NOTES TAKEN FROM SPRING SECURITY JWT JPA POSTGRES EX PROJECT -BEZKODER
 
+------------------------------------------------
+Spring Boot/Security backend application configs
+
