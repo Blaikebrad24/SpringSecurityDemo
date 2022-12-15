@@ -2,4 +2,23 @@ NOTES TAKEN FROM SPRING SECURITY JWT JPA POSTGRES EX PROJECT -BEZKODER
 
 ------------------------------------------------
 Spring Boot/Security backend application configs
-Added some text
+***********
+Application Flow -> Receive HttpRequest->filter request->authenticate request->store Auth data->generateToken->get UserDetails->authorize->handle exception   
+
+- UserDetailsService = interface has method to load user by username and returns
+		       UserDetails object the SS can use for auth/validation
+- UserDetails = contains necessary info (username,pass,auth) to build Auth object
+- UsernamePasswordAuthToken =  get {username,password} from LoginRequest, AuthenticationManager
+			       uses it to authenticate login account
+- AuthenticationManager = has DaoAuthenticationProvider (UserDetailsService/Encoder) to 
+			  validate UsernamePasswordAuthenticationToken object, if success
+			  AuthenticationManager returns full populated Auth object
+			  (authorites included)
+
+- OnceRequestFilter = makes single execution for each request to API. provides 
+		      doInteral() custom method for parsing&validating JWT, loading UserDetails
+		      check authorization (UsernamePasswordAuthenticationToken)
+
+- AuthenticationEntryPoint will catch Authentication Error.
+
+
