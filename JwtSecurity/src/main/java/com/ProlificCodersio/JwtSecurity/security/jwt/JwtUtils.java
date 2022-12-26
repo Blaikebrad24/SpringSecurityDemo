@@ -14,6 +14,7 @@ import javax.crypto.SecretKey;
 import java.security.Key;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Date;
 
@@ -28,7 +29,6 @@ import java.util.Date;
 public class JwtUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
-    private static final SecretKey key = Keys.secretKeyFor(SignatureAlgorithm.HS256); //or HS384 or HS512
 
 
     @Value("${prolific.app.jwtSecret}")
@@ -53,7 +53,7 @@ public class JwtUtils {
 
         return Jwts.builder().setSubject((userPrincipal.getUsername()))
                 .setIssuedAt(new Date()).setExpiration(new Date((new Date()).getTime() + jwtExpriationMs))
-                .signWith(key, SignatureAlgorithm.ES512)
+                .signWith(getSigningKey(), SignatureAlgorithm.ES512)
                 .compact();
     }
 
