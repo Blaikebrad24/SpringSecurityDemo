@@ -1,6 +1,8 @@
 package com.ProlificCodersio.JwtSecurity.security.jwt;
 
 import com.ProlificCodersio.JwtSecurity.security.services.UserDetailsServiceImpl;
+
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,6 +17,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+
 import java.io.IOException;
 
 public class AuthTokenFilter extends OncePerRequestFilter {
@@ -26,12 +29,26 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     private UserDetailsServiceImpl userDetailsService;
 
     private static final Logger logger = LoggerFactory.getLogger(AuthTokenFilter.class);
+
+
     /*
     get JWT from auth header(removing Bearer prefix)
     if request has JWT, validate it, parse username from it
     from username get UserDetails to crate an Authentication object
     set current UserDetails in SecurityContext using setAuthentication(authentication) method
      */
+
+
+    private String parseJwt(HttpServletRequest request)
+    {
+        String headerAuth = request.getHeader("Authorization");
+        if(StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")){
+            return headerAuth.substring(7);
+        }
+        return null;
+    }
+
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         try {
@@ -51,12 +68,5 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         filterChain.doFilter(request,response);
     }
 
-    private String parseJwt(HttpServletRequest request)
-    {
-        String headerAuth = request.getHeader("Authorization");
-        if(StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")){
-            return headerAuth.substring(7, headerAuth.length());
-        }
-        return null;
-    }
+
 }
