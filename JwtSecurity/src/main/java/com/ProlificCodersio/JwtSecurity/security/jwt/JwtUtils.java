@@ -12,6 +12,9 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.security.Key;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Date;
 
 /*
@@ -25,6 +28,8 @@ import java.util.Date;
 public class JwtUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
+    private static final SecretKey key = Keys.secretKeyFor(SignatureAlgorithm.HS256); //or HS384 or HS512
+
 
     @Value("${prolific.app.jwtSecret}")
     private String jwtSecret;
@@ -34,18 +39,21 @@ public class JwtUtils {
 
 
     private Key getSigningKey() {
+
+//        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
         byte[] keyBytes = Decoders.BASE64.decode(this.jwtSecret);
+//        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
+
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String generateJwtToken(Authentication authentication)
     {
         UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
-//        SecretKey key = Keys.secretKeyFor(SignatureAlgorithm.HS256); //or HS384 or HS512
 
         return Jwts.builder().setSubject((userPrincipal.getUsername()))
                 .setIssuedAt(new Date()).setExpiration(new Date((new Date()).getTime() + jwtExpriationMs))
-                .signWith(getSigningKey(), SignatureAlgorithm.ES512)
+                .signWith(key, SignatureAlgorithm.ES512)
                 .compact();
     }
 
