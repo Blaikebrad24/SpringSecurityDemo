@@ -28,93 +28,30 @@ import java.util.Map;
 public class JwtUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
-    private Clock clock = DefaultClock.INSTANCE;
-
     @Value("${prolific.app.jwtSecret}")
-    private static String jwtSecret;
+    private String jwtSecret;
 
     @Value("${prolific.app.jwtExpirationMs}")
-    private Long jwtExpriationMs;
+    private int jwtExpriationMs;
 
 
-    private JwtUtils(){}
-
-
-    private static Key getSigningKey() {
+    private Key getSigningKey() {
 
 //        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
+        byte[] keyBytes = Decoders.BASE64.decode(this.jwtSecret);
 //        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
 
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String createToken(Authentication authentication)
+    public String generateJwtToken(Authentication authentication)
     {
         UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
 
         return Jwts.builder().setSubject((userPrincipal.getUsername()))
-                .setIssuedAt(new Date()).setExpiration(new Date((new Date()).getTime() + 120000))
+                .setIssuedAt(new Date()).setExpiration(new Date((new Date()).getTime() + jwtExpriationMs))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
-    }
-
-    public String generateToken(UserDetails userDetails)
-    {
-        Map<String, Object> claims = new HashMap<>();
-        return doGenerateToken(claims, userDetails.getUsername());
-    }
-    private String doGenerateToken(Map<String, Object> claims, String subject)
-    {
-        final Date createdDate = clock.now();
-        final Date expirationDate = calculateExpirationDate(createdDate);
-
-        return Jwts.builder().setClaims(claims).setSubject(subject)
-                .setIssuedAt(createdDate).setExpiration(expirationDate)
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
-                .compact();
-
-    }
-    private Date calculateExpirationDate(Date createdDate)
-    {
-        return new Date(createdDate.getTime() + jwtExpriationMs * 1000);
-    }
-
-    private static Claims extractClaims(String token)
-    {
-        return Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token).getBody();
-    }
-
-    public Date getIssuedAtDateFromToken(String token)
-    {
-        return extractClaims(token).getIssuedAt();
-    }
-
-    public static String getSubject(String token)
-    {
-        Claims claims = extractClaims(token);
-        return claims.getSubject();
-    }
-    public static String refreshToken(String token, long expirationInSeconds)
-    {
-        final Claims claims = extractClaims(token);
-        Date now = new Date();
-        claims.setIssuedAt(now);
-        claims.setExpiration(new Date(now.getTime() + 120000));
-
-        return createTokenFromClaims(claims);
-    }
-
-    public static boolean isTokenExpired(String token)
-    {
-        final Claims claims = extractClaims(token);
-        Date now = new Date();
-        return now.after(claims.getExpiration());
-    }
-
-    private static String createTokenFromClaims(Claims claims)
-    {
-        return Jwts.builder().setClaims(claims).signWith(getSigningKey(),SignatureAlgorithm.HS256).compact();
     }
 
     public String getUserNameFromJwtToken(String token)
@@ -122,25 +59,21 @@ public class JwtUtils {
         return Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token).getBody().getSubject();
     }
 
-    public boolean validateJwtToken(String authToken, UserDetails userDetails)
+    public boolean validateJwtToken(String authToken)
     {
-
-        UserDetailsImpl userDetails1 = (UserDetailsImpl) userDetails;
-        final String username = getUserNameFromJwtToken(authToken);
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(authToken));
-//        try{
-//            Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(authToken);
-//            return true;
-//        }catch (MalformedJwtException e) {
-//            logger.error("Invalid JWT token: {}", e.getMessage());
-//        } catch (ExpiredJwtException e) {
-//            logger.error("JWT token is expired: {}", e.getMessage());
-//        } catch (UnsupportedJwtException e) {
-//            logger.error("JWT token is unsupported: {}", e.getMessage());
-//        } catch (IllegalArgumentException e) {
-//            logger.error("JWT claims string is empty: {}", e.getMessage());
-//        }
-//        return false;
+        try{
+            Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(authToken);
+            return true;
+        }catch (MalformedJwtException e) {
+            logger.error("Invalid JWT token: {}", e.getMessage());
+        } catch (ExpiredJwtException e) {
+            logger.error("JWT token is expired: {}", e.getMessage());
+        } catch (UnsupportedJwtException e) {
+            logger.error("JWT token is unsupported: {}", e.getMessage());
+        } catch (IllegalArgumentException e) {
+            logger.error("JWT claims string is empty: {}", e.getMessage());
+        }
+        return false;
     }
 
 
