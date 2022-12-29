@@ -1,17 +1,24 @@
 package com.ProlificCodersio.JwtSecurity.controllers;
 
+import com.ProlificCodersio.JwtSecurity.exception.TokenRefreshException;
 import com.ProlificCodersio.JwtSecurity.models.ERole;
+import com.ProlificCodersio.JwtSecurity.models.RefreshToken;
 import com.ProlificCodersio.JwtSecurity.models.Role;
 import com.ProlificCodersio.JwtSecurity.models.User;
 import com.ProlificCodersio.JwtSecurity.payload.request.LoginRequest;
 import com.ProlificCodersio.JwtSecurity.payload.request.SignupRequest;
 import com.ProlificCodersio.JwtSecurity.payload.response.JwtResponse;
 import com.ProlificCodersio.JwtSecurity.payload.response.MessageResponse;
+import com.ProlificCodersio.JwtSecurity.payload.response.UserInfoResponse;
 import com.ProlificCodersio.JwtSecurity.repository.RoleRepository;
 import com.ProlificCodersio.JwtSecurity.repository.UserRepository;
 import com.ProlificCodersio.JwtSecurity.security.jwt.JwtUtils;
+import com.ProlificCodersio.JwtSecurity.security.services.RefreshTokenService;
 import com.ProlificCodersio.JwtSecurity.security.services.UserDetailsImpl;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -45,6 +52,9 @@ public class AuthController {
     @Autowired
     JwtUtils jwtUtils;
 
+    @Autowired
+    RefreshTokenService refreshTokenService;
+
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser( @RequestBody LoginRequest loginRequest) {
 
@@ -52,18 +62,45 @@ public class AuthController {
                 new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = jwtUtils.generateJwtToken(authentication);
-
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        ResponseCookie jwtCookie = jwtUtils.generateJwtCookie(userDetails);
+
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
 
-        return ResponseEntity.ok(new JwtResponse(jwt,
-                userDetails.getId(),
-                userDetails.getUsername(),
-                userDetails.getEmail(),
-                roles));
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(userDetails.getId());
+        ResponseCookie jwtRefreshCookie = jwtUtils.generateRefreshJwtCookie(refreshToken.getToken());
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, jwtRefreshCookie.toString())
+                .body(new UserInfoResponse(userDetails.getId(),userDetails.getUsername()
+                , userDetails.getEmail(),roles));
+    }
+
+
+    @PostMapping("/refreshtoken")
+    public ResponseEntity<?> refreshtoken(HttpServletRequest request)
+    {
+        String refreshToken = jwtUtils.getJwtRefreshFromCookies(request);
+
+        if((refreshToken != null) && (refreshToken.length() > 0))
+        {
+            return refreshTokenService.findByToken(refreshToken)
+                    .map(refreshTokenService::verifyExpiration)
+                    .map(RefreshToken::getUser)
+                    .map(user -> {
+                        ResponseCookie jwtCookie = jwtUtils.generateJwtCookie(user);
+
+                        return ResponseEntity.ok()
+                                .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
+                                .body(new MessageResponse("Token is refreshed successfully!"));
+                    })
+                    .orElseThrow(() -> new TokenRefreshException(refreshToken,
+                            "Refresh token is not in database!"));
+        }
+        return ResponseEntity.badRequest().body(new MessageResponse("Refresh Token is empty!"));
     }
 
     @PostMapping("/signup")
