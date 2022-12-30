@@ -73,14 +73,12 @@ public class JwtUtils {
 
     public ResponseCookie getCleanJwtCookie()
     {
-        ResponseCookie cookie = ResponseCookie.from(jwtCookie, null).path("/api").build();
-        return cookie;
+        return ResponseCookie.from(jwtCookie, null).path("/api").build();
     }
 
     public ResponseCookie getCleanJwtRefreshCookie()
     {
-        ResponseCookie cookie = ResponseCookie.from(jwtRefreshCookie,null).path("/api/auth/refreshtoken").build();
-        return cookie;
+        return ResponseCookie.from(jwtRefreshCookie,null).path("/api/auth/refreshtoken").build();
     }
 
 
@@ -131,8 +129,7 @@ public class JwtUtils {
 
     private ResponseCookie generateCookie(String name, String value, String path)
     {
-        ResponseCookie cookie = ResponseCookie.from(name, value).path(path).maxAge(24 * 60 * 60).httpOnly(true).build();
-        return cookie;
+        return ResponseCookie.from(name, value).path(path).maxAge(24 * 60 * 60).httpOnly(true).build();
     }
 
     private String getCookieValueByName(HttpServletRequest request, String name) {
