@@ -1,0 +1,34 @@
+ 					SPRING BOOT + JWT + POSTGRESQL + HTTP ONLY COOKIE
+
+
+Introduction- This project is a demo application that can be inserted into any Spring Boot Rest/API for Auth/Auth
+
+Dependencies (POM XML) -  spring-boot-starter-data-jpa,
+			  spring-boot-starter-security,
+			  spring-boot-starter-web, postgresql, Lombok, jjwt-api, jjwt-impl, jjwt-jackson
+
+
+
+AUTHCONTROLLER - @PostMapping("/signin")
+/*********
+
+Method - authenticateUser()
+
+Parameters - @RequestBody LoginRequest loginRequest
+
+Returns - ResponseEntity
+
+Purpose - Authentication object gets passed (username=principal,password=credentials)
+	  SecurityContextHolder holds auth object
+	  Create UserDetailsImpl(implements UserDetails) object to hold auth.getPrincipal() "username"
+	  Generate jwtCookie from jwtUtils generateJwtCookie w/ userDetails 
+	  create list of <String> for roles of given username(userDetails)	
+	  create refreshToken from refreshTokenService class
+	  create jwtRefreshCookie from jwtUtils generateRefreshCookie
+
+	  Return responseEntity Headers w/ jwtCookie/jwtRefreshCookie body - userDetails(id,username,email,roles)
+
+
+*********/
+
+
